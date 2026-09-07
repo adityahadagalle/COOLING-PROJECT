@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+﻿import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
 import { CameraController } from '../Camera';
@@ -16,6 +16,7 @@ import { tickSimulation, getSimulatedTelemetry, setRackCooling } from '../../ser
 import { useSetRackCooling } from '../../services/controlApi';
 import { createDetailedServerRack } from '../models/ServerRackCabinet';
 import { PerimeterWall } from '../models/PerimeterWall';
+import { DataCenterFloor } from '../models/DataCenterFloor';
 import * as THREE from 'three';
 
 function Model() {
@@ -105,31 +106,17 @@ function Model() {
 
   const [isReady, setIsReady] = React.useState(false);
 
-  // Traverse the scene once to assign IDs, attach event handlers, and STRIP excess racks
   React.useEffect(() => {
     const nodesToRemove: THREE.Object3D[] = [];
 
     scene.traverse((child: any) => {
-      // Keep only the clean data-center floor (bottom plane tiles) and hide all old white room boundaries
-      // (vertical walls, ceilings, doors, glass, windows, columns, and decorative plants)
-      // leaving only the clean floor and the new black industrial perimeter wall enclosing the racks
       const lowerName = child.name.toLowerCase();
       const parentLowerName = child.parent?.name?.toLowerCase() || '';
 
-      if (child.name.startsWith('Wall_') && child.type === 'Object3D') {
-        child.visible = true;
-      } else if (lowerName.includes('bottom_plane') || lowerName.includes('floor')) {
-        child.visible = true;
-        // Refine floor tile material: clean raised-floor sheen with subtle realistic reflections
-        if (child.isMesh && child.material) {
-          const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-          if (mat) {
-            mat.roughness = 0.35;
-            mat.metalness = 0.15;
-            mat.needsUpdate = true;
-          }
-        }
-      } else if (
+      // Hide all old room geometry from the GLB (floors, walls, ceilings, columns, doors, glass)
+      // leaving only our custom high-tech DataCenterFloor and PerimeterWall
+      if (
+        lowerName.includes('bottom_plane') || lowerName.includes('floor') ||
         lowerName.includes('interior') || lowerName.includes('exterior') || lowerName.includes('top_plane') ||
         lowerName.includes('roof') || lowerName.includes('ceiling') || lowerName.includes('top plane') ||
         lowerName.includes('wall') || parentLowerName.includes('wall') ||
@@ -144,7 +131,6 @@ function Model() {
         child.visible = false;
       }
 
-      // Check if this object or any ancestor is a Rack
       let isPartOfRack = false;
       let node = child;
       while (node) {
@@ -155,7 +141,6 @@ function Model() {
         node = node.parent;
       }
 
-      // Disable raycasting on non-rack objects (walls, floors) so hover works!
       if (!isPartOfRack) {
         child.raycast = () => null;
       }
@@ -164,7 +149,6 @@ function Model() {
       if (match) {
         const num = parseInt(match[1], 10);
         
-        // Strip out everything except the first 25 racks
         if (num > 25) {
           nodesToRemove.push(child);
           return;
@@ -173,12 +157,10 @@ function Model() {
         const rackId = `A0${num}`;
         child.userData = { rackId };
 
-        // Force into a perfect 5x5 grid centered at origin
         const index = num - 1;
         const row = Math.floor(index / 5);
         const col = index % 5;
         
-        // Adjust spacing based on visual preference
         const spacingX = 3.5;
         const spacingZ = 5.0;
         
@@ -187,17 +169,14 @@ function Model() {
           0,
           (row - 2) * spacingZ
         );
-        // Reset rotation so they all face forward neatly
         child.rotation.set(0, 0, 0);
 
-        // Hide original low-poly placeholder meshes
         child.children.forEach((c: any) => {
           if (!c.userData?.isDetailedCabinet) {
             c.visible = false;
           }
         });
 
-        // Attach realistic enterprise server cabinet
         if (!child.children.some((c: any) => c.userData?.isDetailedCabinet)) {
           const cabinet = createDetailedServerRack(rackId);
           child.add(cabinet);
@@ -205,26 +184,22 @@ function Model() {
       }
     });
 
-    // Remove the excess racks from the scene graph entirely
     nodesToRemove.forEach(node => node.removeFromParent());
-    
     setIsReady(true);
   }, [scene]);
 
-  // Find the position of the hovered rack for the tooltip
   const hoveredRackPos = React.useMemo(() => {
     if (!hoveredRackId) return null;
     let pos = new THREE.Vector3();
     scene.traverse((child) => {
       if (child.userData.rackId === hoveredRackId) {
         child.getWorldPosition(pos);
-        pos.y += 1.2; // Level with rack midpoint for clear lateral projection
+        pos.y += 1.3;
       }
     });
     return pos;
   }, [hoveredRackId, scene]);
 
-  // Ensure the simulated datacenter fleet is actively generating dynamic telemetry
   React.useEffect(() => {
     tickSimulation();
     const interval = setInterval(() => {
@@ -405,7 +380,6 @@ function Model() {
               onClick={(e) => e.stopPropagation()}
               className="w-72 rounded-xl border border-white/15 bg-[#0B0E14]/95 p-3.5 backdrop-blur-2xl shadow-2xl text-gray-200 select-none pointer-events-auto transition-all duration-150"
             >
-              {/* Header: Tag & ID & Risk Badge */}
               <div className="flex items-start justify-between border-b border-white/10 pb-2 mb-2">
                 <div>
                   <span className="text-[9px] font-bold tracking-widest text-gray-400 uppercase block">HOVERED RACK</span>
@@ -416,7 +390,6 @@ function Model() {
                 </div>
               </div>
 
-              {/* Sub-line: Zone · GNN Node · Cooling status */}
               <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-sans mb-2.5 pb-2 border-b border-white/5">
                 <span>Zone {zone}</span>
                 <span>·</span>
@@ -427,7 +400,6 @@ function Model() {
                 </span>
               </div>
 
-              {/* Primary Insight Box */}
               <div className="p-2 rounded bg-white/[0.04] border border-white/5 mb-2.5">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[9px] font-bold text-gray-400 tracking-wider uppercase">PRIMARY INSIGHT</span>
@@ -440,7 +412,6 @@ function Model() {
                 </div>
               </div>
 
-              {/* Live Telemetry (CPU, GPU, Temperature) */}
               <div className="grid grid-cols-3 gap-1.5 font-mono text-[11px] mb-2.5">
                 <div className="bg-white/[0.03] p-1.5 rounded border border-white/5 text-center">
                   <div className="text-[9px] text-gray-400 font-sans mb-0.5">CPU</div>
@@ -456,7 +427,6 @@ function Model() {
                 </div>
               </div>
 
-              {/* AI Predictions & Risk Score */}
               <div className="space-y-1 font-mono text-[10px] pt-2 border-t border-white/10">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 font-sans">XGBoost Prediction:</span>
@@ -472,7 +442,6 @@ function Model() {
                 </div>
               </div>
 
-              {/* Action Buttons: Deploy Cooling & Disengage */}
               <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-col gap-2">
                 <button
                   type="button"
@@ -512,6 +481,7 @@ function Model() {
 
       {isReady && (
         <>
+          <DataCenterFloor />
           <PerimeterWall />
           <StatsLayer scene={scene} />
           {activeLayer === 'THERMAL' && <ThermalLayer scene={scene} />}
@@ -542,33 +512,49 @@ function PerfExposer() {
 export function DataCenterScene() {
   return (
     <div className="h-full w-full">
-      <Canvas camera={{ position: [50, 50, 50], fov: 45 }} shadows>
+      <Canvas camera={{ position: [22.5, 27.0, 22.5], fov: 42 }} shadows>
         <PerfExposer />
-        {/* Dark, professional enterprise data-center environment */}
-        <color attach="background" args={['#111319']} />
+        {/* Deep obsidian data center environment */}
+        <color attach="background" args={['#080a0f']} />
         
-        {/* Subtle ambient lighting */}
-        <ambientLight intensity={0.42} />
-        <hemisphereLight args={['#ffffff', '#0f172a', 0.22]} />
+        {/* Subtle ambient fill */}
+        <ambientLight intensity={0.45} color="#e2e8f0" />
+        <hemisphereLight args={['#94a3b8', '#080a0f', 0.35]} />
 
-        {/* Soft overhead key illumination for rack geometry and floor reflections */}
+        {/* Primary overhead key light with complete room shadow frustum */}
         <directionalLight
-          position={[12, 26, 14]}
-          intensity={1.15}
+          position={[18, 34, 20]}
+          intensity={1.9}
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-near={0.5}
+          shadow-camera-far={70}
+          shadow-camera-left={-22}
+          shadow-camera-right={22}
+          shadow-camera-top={22}
+          shadow-camera-bottom={-22}
+          shadow-bias={-0.0002}
         />
 
-        {/* Subtle cross-fill light to soften rack shadows */}
-        <directionalLight position={[-14, 18, -12]} intensity={0.35} />
+        {/* Subtle cross-fill light bringing out metallic rack highlights */}
+        <directionalLight position={[-16, 22, -14]} intensity={0.60} color="#38bdf8" />
         
+        {/* Architectural perimeter downlights casting soft light pools on walls and floor */}
+        <pointLight position={[-6.0, 2.9, -11.5]} intensity={0.9} color="#e0f2fe" distance={8} />
+        <pointLight position={[6.0, 2.9, -11.5]} intensity={0.9} color="#e0f2fe" distance={8} />
+        <pointLight position={[-6.0, 2.9, 11.5]} intensity={0.9} color="#e0f2fe" distance={8} />
+        <pointLight position={[6.0, 2.9, 11.5]} intensity={0.9} color="#e0f2fe" distance={8} />
+        <pointLight position={[0, 2.8, 12.6]} intensity={1.3} color="#f8fafc" distance={7} />
+        <pointLight position={[-8.5, 2.8, 0]} intensity={0.9} color="#e0f2fe" distance={8} />
+        <pointLight position={[8.5, 2.8, 0]} intensity={0.9} color="#e0f2fe" distance={8} />
+
         <Suspense fallback={null}>
           <Model />
           <Environment preset="city" />
         </Suspense>
 
-        <OrbitControls makeDefault />
+        <OrbitControls makeDefault target={[0, 1.0, 0]} />
         <CameraController />
       </Canvas>
     </div>

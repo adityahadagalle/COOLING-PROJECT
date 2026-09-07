@@ -21,10 +21,10 @@ export function TopNav() {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#0B0E14] px-6">
-      <div className="flex items-center gap-2">
+      <NavLink to="/" className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer">
         <Box className="text-cyan-400" size={20} />
         <span className="font-bold tracking-wide text-white text-lg">THERVO</span>
-      </div>
+      </NavLink>
 
       <nav className="flex items-center gap-2">
         {isLocal ? (
