@@ -420,3 +420,6 @@ if (typeof window !== 'undefined') {
   (window as any).__setRackCooling = setRackCooling;
   (window as any).__racks = racks;
 }
+
+// Initialize simulation with a baseline tick
+tickSimulation();

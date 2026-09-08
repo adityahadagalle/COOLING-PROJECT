@@ -20,7 +20,8 @@ syncSimulationTimer();
 subscribeSimulationConfig(syncSimulationTimer);
 
 export async function getTelemetry(): Promise<any> {
-  const mode = localStorage.getItem('thervo_mode') || 'LOCAL';
+  const defaultMode = typeof window !== 'undefined' && window.location.pathname === '/dual-node' ? 'LOCAL' : 'SIMULATED';
+  const mode = localStorage.getItem('thervo_mode') || defaultMode;
   if (mode === 'SIMULATED') {
     return getSimulatedTelemetry();
   }

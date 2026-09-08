@@ -1,14 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import { DataCenterScene } from '../three/DataCenterScene';
 import { SceneControlBar } from '../features/SceneControlBar';
-import { ContextualDetailsPanel } from '../features/ContextualDetailsPanel';
 import { useTelemetry } from '../services/telemetryApi';
 import { getSimulatedTelemetry } from '../services/simulation';
-import { useUiStore } from '../stores/uiStore';
 
 export function ThermalMapTab() {
   const { data: telemetry } = useTelemetry();
-  const selectedRackId = useUiStore((state) => state.selectedRackId);
 
   // Live time ticker
   const [now, setNow] = React.useState(new Date());
@@ -94,14 +91,7 @@ export function ThermalMapTab() {
           </div>
         </div>
 
-        {/* MIDDLE-RIGHT: Contextual Details Panel when rack selected */}
-        <div className="flex justify-end my-auto pointer-events-none">
-          {selectedRackId && (
-            <div className="pointer-events-auto">
-              <ContextualDetailsPanel />
-            </div>
-          )}
-        </div>
+
 
         {/* BOTTOM BAR: Metric Summary Card (Left) | Thermal State Legend (Right) */}
         <div className="flex items-end justify-between">

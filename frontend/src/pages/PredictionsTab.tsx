@@ -5,7 +5,10 @@ export function PredictionsTab() {
   const { data: telemetry } = useTelemetry();
 
   return (
-    <div className="flex h-full w-full p-6 gap-6 overflow-y-auto">
+    <div 
+      style={{ zoom: 1.5 }}
+      className="flex h-full w-full p-6 gap-6 overflow-y-auto"
+    >
       
       {/* Left Column: Model Architecture */}
       <div className="w-1/3 flex flex-col gap-6">

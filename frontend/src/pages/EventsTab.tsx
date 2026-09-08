@@ -5,7 +5,10 @@ export function EventsTab() {
   const { data: telemetry } = useTelemetry();
 
   return (
-    <div className="flex h-full w-full flex-col p-6 overflow-hidden">
+    <div 
+      style={{ zoom: 1.5 }}
+      className="flex h-full w-full flex-col p-6 overflow-hidden"
+    >
       <div className="flex-1 rounded-xl border border-white/10 bg-[#0B0E14]/80 backdrop-blur shadow-2xl flex flex-col overflow-hidden">
         
         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">

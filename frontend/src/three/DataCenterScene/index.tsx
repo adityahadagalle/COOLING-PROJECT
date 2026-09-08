@@ -1,5 +1,5 @@
-﻿import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
 import { CameraController } from '../Camera';
 
@@ -21,8 +21,7 @@ import * as THREE from 'three';
 
 function Model() {
   const { scene } = useGLTF('/models/room_server.glb');
-  const { setSelectedRackId, setHoveredRackId, activeLayer } = useUiStore();
-  const hoveredRackId = useUiStore((state) => state.hoveredRackId);
+  const { selectedRackId, setSelectedRackId, hoveredRackId, setHoveredRackId, activeLayer } = useUiStore();
   const { data: telemetry } = useTelemetry();
   const queryClient = useQueryClient();
   const setRackCoolingMutation = useSetRackCooling();
@@ -102,7 +101,14 @@ function Model() {
     (window as any).__disengageOnHovered = () => {
       if (hoveredRackId) handleDisengage(hoveredRackId);
     };
-  }, [hoveredRackId]);
+    (window as any).__scene = scene;
+    (window as any).__openRack = (id: string) => {
+      setSelectedRackId(id);
+      setHoveredRackId(id);
+    };
+    (window as any).__getHoveredRack = () => hoveredRackId;
+    (window as any).__getSelectedRack = () => selectedRackId;
+  }, [hoveredRackId, selectedRackId, scene]);
 
   const [isReady, setIsReady] = React.useState(false);
 
@@ -251,46 +257,41 @@ function Model() {
     <group>
       <primitive 
         object={scene} 
-        onClick={(e: any) => {
+        onDoubleClick={(e: any) => {
           e.stopPropagation();
           let node = e.object;
-          while (node && !(node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i)) && node.parent) {
+          while (node && !node.userData?.rackId && !(node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i)) && node.parent) {
             node = node.parent;
           }
-          if (node && (node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i))) {
-            setSelectedRackId(node.userData.rackId);
-          } else {
-            setSelectedRackId(null);
+          const rackId = node?.userData?.rackId || (node?.name?.match(/^Rack\s*(\d+)$/i) ? `A0${parseInt(node.name.match(/^Rack\s*(\d+)$/i)[1], 10)}` : null);
+          if (rackId) {
+            clearHoverTimeout();
+            isOverCardRef.current = false;
+            setSelectedRackId(rackId);
+            setHoveredRackId(rackId);
           }
+        }}
+        onClick={(e: any) => {
+          e.stopPropagation();
+          // Single-click does NOT open the rack information panel
         }}
         onPointerOver={(e: any) => {
           e.stopPropagation();
           let node = e.object;
-          while (node && !(node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i)) && node.parent) {
+          while (node && !node.userData?.rackId && !(node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i)) && node.parent) {
             node = node.parent;
           }
-          if (node && (node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i))) {
-            clearHoverTimeout();
-            isOverCardRef.current = false;
-            setHoveredRackId(node.userData.rackId);
+          if (node && (node.userData?.rackId || node.name.match(/^Rack\s*\d+$/i) || node.name.match(/^Rack_\d+$/i))) {
             document.body.style.cursor = 'pointer';
           }
         }}
         onPointerOut={(e: any) => {
           e.stopPropagation();
-          clearHoverTimeout();
-          hoverTimeoutRef.current = setTimeout(() => {
-            if (!isOverCardRef.current) {
-              setHoveredRackId(null);
-              document.body.style.cursor = 'default';
-            }
-          }, 300);
+          document.body.style.cursor = 'default';
         }}
         onPointerMissed={() => {
           setSelectedRackId(null);
-          if (!isOverCardRef.current) {
-            setHoveredRackId(null);
-          }
+          setHoveredRackId(null);
         }}
       />
       
@@ -368,25 +369,33 @@ function Model() {
               }}
               onMouseLeave={() => {
                 isOverCardRef.current = false;
-                clearHoverTimeout();
-                hoverTimeoutRef.current = setTimeout(() => {
-                  if (!isOverCardRef.current) {
-                    setHoveredRackId(null);
-                    document.body.style.cursor = 'default';
-                  }
-                }, 200);
               }}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
               className="w-72 rounded-xl border border-white/15 bg-[#0B0E14]/95 p-3.5 backdrop-blur-2xl shadow-2xl text-gray-200 select-none pointer-events-auto transition-all duration-150"
             >
               <div className="flex items-start justify-between border-b border-white/10 pb-2 mb-2">
                 <div>
-                  <span className="text-[9px] font-bold tracking-widest text-gray-400 uppercase block">HOVERED RACK</span>
+                  <span className="text-[9px] font-bold tracking-widest text-gray-400 uppercase block">RACK DETAILS</span>
                   <h3 className="text-base font-mono font-bold text-white tracking-wider">{displayRackId}</h3>
                 </div>
-                <div className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${riskBadgeClass}`}>
-                  {riskLabel} {riskPct}%
+                <div className="flex items-center gap-2">
+                  <div className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${riskBadgeClass}`}>
+                    {riskLabel} {riskPct}%
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHoveredRackId(null);
+                      setSelectedRackId(null);
+                    }}
+                    className="text-gray-400 hover:text-white p-0.5 rounded hover:bg-white/10 transition-colors cursor-pointer text-xs leading-none"
+                    title="Close"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
 
@@ -492,8 +501,6 @@ function Model() {
     </group>
   );
 }
-
-import { useThree } from '@react-three/fiber';
 
 function PerfExposer() {
   const { gl, scene, camera } = useThree();

@@ -30,3 +30,8 @@ export const useUiStore = create<UiState>((set) => ({
     set({ uiThemeMode: mode });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).__uiStore = useUiStore;
+}
+
