@@ -2,7 +2,7 @@ import { useTelemetry } from '../services/telemetryApi';
 import { useUiStore } from '../stores/uiStore';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import { getSimulatedTelemetry } from '../services/simulation';
-import { Activity, Thermometer, Fan, AlertTriangle, CheckCircle2, Sparkles, Cpu, HardDrive, Wifi, ShieldCheck, Zap } from 'lucide-react';
+import { Activity, Thermometer, Fan, AlertTriangle, CheckCircle2, Sparkles, Cpu, Zap } from 'lucide-react';
 
 export function ContextualDetailsPanel() {
   const selectedRackId = useUiStore((state) => state.selectedRackId);

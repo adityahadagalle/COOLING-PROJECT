@@ -14,11 +14,7 @@ import {
   resetSimulation,
   subscribeSimulationConfig 
 } from '../../services/simulation';
-import { useUiStore } from '../../stores/uiStore';
-
 export function SimulationControlBar() {
-  const { uiThemeMode } = useUiStore();
-  const isTelemetry = uiThemeMode === 'TELEMETRY';
   const [config, setConfig] = useState(getSimulationConfig());
   const [isExpanded, setIsExpanded] = useState(true);
 

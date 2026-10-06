@@ -1,5 +1,6 @@
 import { useTelemetry } from '../services/telemetryApi';
 import { BrainCircuit, Sparkles } from 'lucide-react';
+import { AiOperationsCopilot } from '../features/AiOperationsCopilot';
 
 export function PredictionsTab() {
   const { data: telemetry } = useTelemetry();
@@ -56,6 +57,9 @@ export function PredictionsTab() {
             </div>
           </div>
         </div>
+
+        {/* AI OPERATIONS COPILOT (Additive intelligence panel) */}
+        <AiOperationsCopilot />
       </div>
 
       {/* Right Column: Feature Importance & Validation */}

@@ -11,15 +11,42 @@ from runtime.live_runtime_manager import LiveRuntimeManager
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 class DashboardHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.dist_dir = os.path.join(self.root_dir, 'frontend', 'dist')
+        target_dir = self.dist_dir if os.path.exists(self.dist_dir) else self.root_dir
+        super().__init__(*args, directory=target_dir, **kwargs)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
     def do_GET(self):
-        if self.path == '/':
-            dist_index = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'dist', 'index.html')
-            if os.path.exists(dist_index):
-                self.path = '/frontend/dist/index.html'
-            else:
-                self.path = '/Index.html'
+        # Legacy dashboard endpoint
+        if self.path in ('/legacy', '/Index.html'):
+            legacy_file = os.path.join(self.root_dir, 'Index.html')
+            if os.path.exists(legacy_file):
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.end_headers()
+                with open(legacy_file, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+
+        # Single page app route fallback:
+        # If frontend/dist exists, and requested path does not match a file on disk,
+        # fallback to index.html so React Router handles the route.
+        if os.path.exists(self.dist_dir):
+            clean_path = self.path.split('?')[0].lstrip('/')
+            file_path = os.path.join(self.dist_dir, clean_path)
+            if not os.path.exists(file_path):
+                self.path = '/index.html'
+
         return super().do_GET()
-        
+
     def log_message(self, format, *args):
         pass  # Disable logging to avoid console spam
 

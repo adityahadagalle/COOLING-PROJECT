@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, ShieldCheck, User } from 'lucide-react';
+import { Activity, User } from 'lucide-react';
 
 export function TopNav() {
   const navigate = useNavigate();

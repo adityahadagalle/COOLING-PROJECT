@@ -5,7 +5,7 @@ import { useUiStore } from '../stores/uiStore';
 import { useInjectSpike, useToggleRackOverride, useResetSimulation } from '../services/controlApi';
 import { SimulationControlBar } from '../components/simulation/SimulationControlBar';
 import { XaiExplainerModal } from '../components/xai/XaiExplainerModal';
-import { Flame, RefreshCw, Snowflake, Cpu, Sparkles, HardDrive, Wifi, Sliders, Monitor, Zap } from 'lucide-react';
+import { Flame, RefreshCw, Snowflake, Cpu, Sparkles, HardDrive, Wifi, Sliders, Monitor } from 'lucide-react';
 
 export function OverviewTab() {
   const { data: telemetry } = useTelemetry();
@@ -13,8 +13,6 @@ export function OverviewTab() {
   const { selectedRackId, setSelectedRackId, uiThemeMode, setUiThemeMode } = useUiStore();
   const [zoneFilter, setZoneFilter] = useState<string>('ALL');
   const [xaiModalRack, setXaiModalRack] = useState<any>(null);
-
-  const isTelemetry = uiThemeMode === 'TELEMETRY';
 
   const spikeMutation = useInjectSpike();
   const overrideMutation = useToggleRackOverride();

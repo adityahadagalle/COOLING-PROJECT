@@ -3,7 +3,7 @@ import { useTelemetry } from '../services/telemetryApi';
 import { useUiStore } from '../stores/uiStore';
 import { ContextualDetailsPanel } from '../features/ContextualDetailsPanel';
 import { SimulationControlBar } from '../components/simulation/SimulationControlBar';
-import { Snowflake, Cpu, HardDrive, Wifi, Server, Filter } from 'lucide-react';
+import { Snowflake, Cpu, HardDrive, Wifi, Filter } from 'lucide-react';
 
 export function RacksTab() {
   const { data: telemetry } = useTelemetry();
